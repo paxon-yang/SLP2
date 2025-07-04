@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .download-section {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            text-align: center;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+        
+        .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #6c757d;
+        }
+        
+        .stats {
+            padding: 20px 30px;
+            background: #e3f2fd;
+            text-align: center;
+            color: #1565c0;
+            font-weight: 600;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .page-container {
+            margin-bottom: 40px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        
+        .page-container:hover {
+            transform: translateY(-5px);
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 15px 25px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        .page-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+        
+        .page-image:hover {
+            transform: scale(1.02);
+        }
+        
+        .page-info {
+            padding: 15px 25px;
+            background: #f8f9fa;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            display: none;
+        }
+        
+        .back-to-top:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .footer {
+            background: #343a40;
+            color: white;
+            text-align: center;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .download-section,
+            .stats {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Document Viewer</h1>
+            <p>CamScanner Document Online Viewer</p>
+        </div>
+        
+        <div class="download-section">
+            <button onclick="downloadAsPDF()" class="download-btn" id="downloadBtn">
+                📥 Download as PDF
+            </button>
+            <div class="loading" id="loadingText">
+                Generating PDF... Please wait
+            </div>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            📊 Total 89 pages
+        </div>
+        
+        <div class="content">
+
+            <div class="page-container" id="page-1">
+                <div class="page-header">
+                    📄 Page 01
+                </div>
+                <img src="page_01.jpg" alt="Page 01" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-2">
+                <div class="page-header">
+                    📄 Page 02
+                </div>
+                <img src="page_02.jpg" alt="Page 02" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-3">
+                <div class="page-header">
+                    📄 Page 03
+                </div>
+                <img src="page_03.jpg" alt="Page 03" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-4">
+                <div class="page-header">
+                    📄 Page 04
+                </div>
+                <img src="page_04.jpg" alt="Page 04" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-5">
+                <div class="page-header">
+                    📄 Page 05
+                </div>
+                <img src="page_05.jpg" alt="Page 05" class="page-image">
+                <div class="page-info">
+                    File size: 0.3 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-6">
+                <div class="page-header">
+                    📄 Page 06
+                </div>
+                <img src="page_06.jpg" alt="Page 06" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-7">
+                <div class="page-header">
+                    📄 Page 07
+                </div>
+                <img src="page_07.jpg" alt="Page 07" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-8">
+                <div class="page-header">
+                    📄 Page 08
+                </div>
+                <img src="page_08.jpg" alt="Page 08" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-9">
+                <div class="page-header">
+                    📄 Page 09
+                </div>
+                <img src="page_09.jpg" alt="Page 09" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-10">
+                <div class="page-header">
+                    📄 Page 10
+                </div>
+                <img src="page_10.jpg" alt="Page 10" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-11">
+                <div class="page-header">
+                    📄 Page 11
+                </div>
+                <img src="page_11.jpg" alt="Page 11" class="page-image">
+                <div class="page-info">
+                    File size: 0.3 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-12">
+                <div class="page-header">
+                    📄 Page 12
+                </div>
+                <img src="page_12.jpg" alt="Page 12" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-13">
+                <div class="page-header">
+                    📄 Page 13
+                </div>
+                <img src="page_13.jpg" alt="Page 13" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-14">
+                <div class="page-header">
+                    📄 Page 14
+                </div>
+                <img src="page_14.jpg" alt="Page 14" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-15">
+                <div class="page-header">
+                    📄 Page 15
+                </div>
+                <img src="page_15.jpg" alt="Page 15" class="page-image">
+                <div class="page-info">
+                    File size: 0.0 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-16">
+                <div class="page-header">
+                    📄 Page 16
+                </div>
+                <img src="page_16.jpg" alt="Page 16" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-17">
+                <div class="page-header">
+                    📄 Page 17
+                </div>
+                <img src="page_17.jpg" alt="Page 17" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-18">
+                <div class="page-header">
+                    📄 Page 18
+                </div>
+                <img src="page_18.jpg" alt="Page 18" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-19">
+                <div class="page-header">
+                    📄 Page 19
+                </div>
+                <img src="page_19.jpg" alt="Page 19" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-20">
+                <div class="page-header">
+                    📄 Page 20
+                </div>
+                <img src="page_20.jpg" alt="Page 20" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-21">
+                <div class="page-header">
+                    📄 Page 21
+                </div>
+                <img src="page_21.jpg" alt="Page 21" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-22">
+                <div class="page-header">
+                    📄 Page 22
+                </div>
+                <img src="page_22.jpg" alt="Page 22" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-23">
+                <div class="page-header">
+                    📄 Page 23
+                </div>
+                <img src="page_23.jpg" alt="Page 23" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-24">
+                <div class="page-header">
+                    📄 Page 24
+                </div>
+                <img src="page_24.jpg" alt="Page 24" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-25">
+                <div class="page-header">
+                    📄 Page 25
+                </div>
+                <img src="page_25.jpg" alt="Page 25" class="page-image">
+                <div class="page-info">
+                    File size: 0.0 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-26">
+                <div class="page-header">
+                    📄 Page 26
+                </div>
+                <img src="page_26.jpg" alt="Page 26" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-27">
+                <div class="page-header">
+                    📄 Page 27
+                </div>
+                <img src="page_27.jpg" alt="Page 27" class="page-image">
+                <div class="page-info">
+                    File size: 0.0 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-28">
+                <div class="page-header">
+                    📄 Page 28
+                </div>
+                <img src="page_28.jpg" alt="Page 28" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-29">
+                <div class="page-header">
+                    📄 Page 29
+                </div>
+                <img src="page_29.jpg" alt="Page 29" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-30">
+                <div class="page-header">
+                    📄 Page 30
+                </div>
+                <img src="page_30.jpg" alt="Page 30" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-31">
+                <div class="page-header">
+                    📄 Page 31
+                </div>
+                <img src="page_31.jpg" alt="Page 31" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-32">
+                <div class="page-header">
+                    📄 Page 32
+                </div>
+                <img src="page_32.jpg" alt="Page 32" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-33">
+                <div class="page-header">
+                    📄 Page 33
+                </div>
+                <img src="page_33.jpg" alt="Page 33" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-34">
+                <div class="page-header">
+                    📄 Page 34
+                </div>
+                <img src="page_34.jpg" alt="Page 34" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-35">
+                <div class="page-header">
+                    📄 Page 35
+                </div>
+                <img src="page_35.jpg" alt="Page 35" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-36">
+                <div class="page-header">
+                    📄 Page 36
+                </div>
+                <img src="page_36.jpg" alt="Page 36" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-37">
+                <div class="page-header">
+                    📄 Page 37
+                </div>
+                <img src="page_37.jpg" alt="Page 37" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-38">
+                <div class="page-header">
+                    📄 Page 38
+                </div>
+                <img src="page_38.jpg" alt="Page 38" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-39">
+                <div class="page-header">
+                    📄 Page 39
+                </div>
+                <img src="page_39.jpg" alt="Page 39" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-40">
+                <div class="page-header">
+                    📄 Page 40
+                </div>
+                <img src="page_40.jpg" alt="Page 40" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-41">
+                <div class="page-header">
+                    📄 Page 41
+                </div>
+                <img src="page_41.jpg" alt="Page 41" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-42">
+                <div class="page-header">
+                    📄 Page 42
+                </div>
+                <img src="page_42.jpg" alt="Page 42" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-43">
+                <div class="page-header">
+                    📄 Page 43
+                </div>
+                <img src="page_43.jpg" alt="Page 43" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-44">
+                <div class="page-header">
+                    📄 Page 44
+                </div>
+                <img src="page_44.jpg" alt="Page 44" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-45">
+                <div class="page-header">
+                    📄 Page 45
+                </div>
+                <img src="page_45.jpg" alt="Page 45" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-46">
+                <div class="page-header">
+                    📄 Page 46
+                </div>
+                <img src="page_46.jpg" alt="Page 46" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-47">
+                <div class="page-header">
+                    📄 Page 47
+                </div>
+                <img src="page_47.jpg" alt="Page 47" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-48">
+                <div class="page-header">
+                    📄 Page 48
+                </div>
+                <img src="page_48.jpg" alt="Page 48" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-49">
+                <div class="page-header">
+                    📄 Page 49
+                </div>
+                <img src="page_49.jpg" alt="Page 49" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-50">
+                <div class="page-header">
+                    📄 Page 50
+                </div>
+                <img src="page_50.jpg" alt="Page 50" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-51">
+                <div class="page-header">
+                    📄 Page 51
+                </div>
+                <img src="page_51.jpg" alt="Page 51" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-52">
+                <div class="page-header">
+                    📄 Page 52
+                </div>
+                <img src="page_52.jpg" alt="Page 52" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-53">
+                <div class="page-header">
+                    📄 Page 53
+                </div>
+                <img src="page_53.jpg" alt="Page 53" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-54">
+                <div class="page-header">
+                    📄 Page 54
+                </div>
+                <img src="page_54.jpg" alt="Page 54" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-55">
+                <div class="page-header">
+                    📄 Page 55
+                </div>
+                <img src="page_55.jpg" alt="Page 55" class="page-image">
+                <div class="page-info">
+                    File size: 0.0 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-56">
+                <div class="page-header">
+                    📄 Page 56
+                </div>
+                <img src="page_56.jpg" alt="Page 56" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-57">
+                <div class="page-header">
+                    📄 Page 57
+                </div>
+                <img src="page_57.jpg" alt="Page 57" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-58">
+                <div class="page-header">
+                    📄 Page 58
+                </div>
+                <img src="page_58.jpg" alt="Page 58" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-59">
+                <div class="page-header">
+                    📄 Page 59
+                </div>
+                <img src="page_59.jpg" alt="Page 59" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-60">
+                <div class="page-header">
+                    📄 Page 60
+                </div>
+                <img src="page_60.jpg" alt="Page 60" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-61">
+                <div class="page-header">
+                    📄 Page 61
+                </div>
+                <img src="page_61.jpg" alt="Page 61" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-62">
+                <div class="page-header">
+                    📄 Page 62
+                </div>
+                <img src="page_62.jpg" alt="Page 62" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-63">
+                <div class="page-header">
+                    📄 Page 63
+                </div>
+                <img src="page_63.jpg" alt="Page 63" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-64">
+                <div class="page-header">
+                    📄 Page 64
+                </div>
+                <img src="page_64.jpg" alt="Page 64" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-65">
+                <div class="page-header">
+                    📄 Page 65
+                </div>
+                <img src="page_65.jpg" alt="Page 65" class="page-image">
+                <div class="page-info">
+                    File size: 0.0 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-66">
+                <div class="page-header">
+                    📄 Page 66
+                </div>
+                <img src="page_66.jpg" alt="Page 66" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-67">
+                <div class="page-header">
+                    📄 Page 67
+                </div>
+                <img src="page_67.jpg" alt="Page 67" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-68">
+                <div class="page-header">
+                    📄 Page 68
+                </div>
+                <img src="page_68.jpg" alt="Page 68" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-69">
+                <div class="page-header">
+                    📄 Page 69
+                </div>
+                <img src="page_69.jpg" alt="Page 69" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-70">
+                <div class="page-header">
+                    📄 Page 70
+                </div>
+                <img src="page_70.jpg" alt="Page 70" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-71">
+                <div class="page-header">
+                    📄 Page 71
+                </div>
+                <img src="page_71.jpg" alt="Page 71" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-72">
+                <div class="page-header">
+                    📄 Page 72
+                </div>
+                <img src="page_72.jpg" alt="Page 72" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-73">
+                <div class="page-header">
+                    📄 Page 73
+                </div>
+                <img src="page_73.jpg" alt="Page 73" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-74">
+                <div class="page-header">
+                    📄 Page 74
+                </div>
+                <img src="page_74.jpg" alt="Page 74" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-75">
+                <div class="page-header">
+                    📄 Page 75
+                </div>
+                <img src="page_75.jpg" alt="Page 75" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-76">
+                <div class="page-header">
+                    📄 Page 76
+                </div>
+                <img src="page_76.jpg" alt="Page 76" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-77">
+                <div class="page-header">
+                    📄 Page 77
+                </div>
+                <img src="page_77.jpg" alt="Page 77" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-78">
+                <div class="page-header">
+                    📄 Page 78
+                </div>
+                <img src="page_78.jpg" alt="Page 78" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-79">
+                <div class="page-header">
+                    📄 Page 79
+                </div>
+                <img src="page_79.jpg" alt="Page 79" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-80">
+                <div class="page-header">
+                    📄 Page 80
+                </div>
+                <img src="page_80.jpg" alt="Page 80" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-81">
+                <div class="page-header">
+                    📄 Page 81
+                </div>
+                <img src="page_81.jpg" alt="Page 81" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-82">
+                <div class="page-header">
+                    📄 Page 82
+                </div>
+                <img src="page_82.jpg" alt="Page 82" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-83">
+                <div class="page-header">
+                    📄 Page 83
+                </div>
+                <img src="page_83.jpg" alt="Page 83" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-84">
+                <div class="page-header">
+                    📄 Page 84
+                </div>
+                <img src="page_84.jpg" alt="Page 84" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-85">
+                <div class="page-header">
+                    📄 Page 85
+                </div>
+                <img src="page_85.jpg" alt="Page 85" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-86">
+                <div class="page-header">
+                    📄 Page 86
+                </div>
+                <img src="page_86.jpg" alt="Page 86" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-87">
+                <div class="page-header">
+                    📄 Page 87
+                </div>
+                <img src="page_87.jpg" alt="Page 87" class="page-image">
+                <div class="page-info">
+                    File size: 0.2 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-88">
+                <div class="page-header">
+                    📄 Page 88
+                </div>
+                <img src="page_88.jpg" alt="Page 88" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+            <div class="page-container" id="page-89">
+                <div class="page-header">
+                    📄 Page 89
+                </div>
+                <img src="page_89.jpg" alt="Page 89" class="page-image">
+                <div class="page-info">
+                    File size: 0.1 MB | Click image to view original size
+                </div>
+            </div>
+
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 Document Viewer | 89 pages generated</p>
+        </div>
+    </div>
+    
+    <button class="back-to-top" onclick="scrollToTop()">↑</button>
+    
+    <script>
+        // Back to top functionality
+        window.onscroll = function() {
+            const backToTop = document.querySelector('.back-to-top');
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                backToTop.style.display = 'block';
+            } else {
+                backToTop.style.display = 'none';
+            }
+        };
+        
+        function scrollToTop() {
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        }
+        
+        // PDF generation function
+        async function downloadAsPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            
+            const images = document.querySelectorAll('.page-image');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const loadingText = document.getElementById('loadingText');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            // Show loading state
+            downloadBtn.disabled = true;
+            loadingText.style.display = 'block';
+            progressBar.style.display = 'block';
+            
+            try {
+                for (let i = 0; i < images.length; i++) {
+                    const img = images[i];
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Wait for image to load
+                    await new Promise((resolve) => {
+                        if (img.complete) {
+                            resolve();
+                        } else {
+                            img.onload = resolve;
+                        }
+                    });
+                    
+                    // Set canvas size to match image
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    
+                    // Draw image to canvas
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Convert to data URL
+                    const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    // Calculate dimensions to fit A4 page
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+                    
+                    // Calculate scaling to fit page while maintaining aspect ratio
+                    const widthRatio = pageWidth / imgWidth;
+                    const heightRatio = pageHeight / imgHeight;
+                    const scale = Math.min(widthRatio, heightRatio);
+                    
+                    const scaledWidth = imgWidth * scale;
+                    const scaledHeight = imgHeight * scale;
+                    
+                    // Center the image on the page
+                    const x = (pageWidth - scaledWidth) / 2;
+                    const y = (pageHeight - scaledHeight) / 2;
+                    
+                    // Add new page if not first image
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    // Add image to PDF
+                    pdf.addImage(dataURL, 'JPEG', x, y, scaledWidth, scaledHeight);
+                    
+                    // Update progress
+                    const progress = ((i + 1) / images.length) * 100;
+                    progressFill.style.width = progress + '%';
+                    
+                    // Small delay to prevent browser freezing
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                // Save PDF
+                pdf.save('CamScanner_Document.pdf');
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+            } finally {
+                // Reset UI
+                downloadBtn.disabled = false;
+                loadingText.style.display = 'none';
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            }
+        }
+        
+        // Image click to view original size
+        document.querySelectorAll('.page-image').forEach(img => {
+            img.addEventListener('click', function() {
+                window.open(this.src, '_blank');
+            });
+        });
+    </script>
+</body>
+</html>
